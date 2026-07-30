@@ -26,7 +26,22 @@
   var GATE_ID = 'mergee-auth-gate';
   var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwzXSMXQD1AFjCDTTFm0iZ4eV4Bhi8qzkZI5Te3v4TFz01TxTu7xVET_OaKGv22R2k/exec';
   var CLIENT_ID = '541429667442-6im11d4rrg09m95suab32vcj7kf3lpf1.apps.googleusercontent.com';
+  var SESSION_KEY = 'mergee_auth_expiry';
+  var SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // จำการล็อกอินไว้ 8 ชั่วโมง ใช้ร่วมกันทุกไฟล์ในโดเมนนี้
   var unlocked = false;
+
+  function isSessionValid(){
+    var exp = parseInt(localStorage.getItem(SESSION_KEY) || '0', 10);
+    return exp > Date.now();
+  }
+
+  function markSessionAuthorized(){
+    localStorage.setItem(SESSION_KEY, String(Date.now() + SESSION_DURATION_MS));
+  }
+
+  if (isSessionValid()) {
+    unlocked = true;
+  }
 
   function gateInnerHTML(){
     return '<div style="background:#fff;border-radius:16px;padding:32px 28px;max-width:340px;width:100%;text-align:center">' +
@@ -83,6 +98,7 @@
       .then(function(data){
         if (data && data.authorized) {
           unlocked = true;
+          markSessionAuthorized();
           var gate = document.getElementById(GATE_ID);
           if (gate) gate.remove();
         } else {
