@@ -72,9 +72,9 @@ window.__mergeeShowGate = function(){
             localStorage.setItem(USER_KEY, JSON.stringify({ email: data.email, name: data.name, role: data.role }));
           } catch (e) {}
           location.reload();
-        } else { showError(); }
+        } else { showError(); if (data && data.reason) $('mergee-auth-error').textContent = 'อีเมลนี้ไม่มีสิทธิ์เข้าถึงหน้านี้ — ' + data.reason; }
       })
-      .catch(function(){ showError(); });
+      .catch(function(err){ showError(); $('mergee-auth-error').textContent = 'เชื่อมต่อ Apps Script ไม่ได้ — ตรวจว่า Deploy เป็น New version แล้ว'; });
   }
   function initGate(){
     if (window.google && google.accounts && google.accounts.id) {
