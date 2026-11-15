@@ -19,6 +19,65 @@
   </noscript>
 </head>
 <body>
+<script>
+window.__mergeeShowGate = function(){
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNBCgY9KafLLs2tkbqVYyEbKj-mcT7sPUam2wpTIoXF0pIuUe7qGGBGfvrHbLwWj9X/exec';
+  var CLIENT_ID = '541429667442-6im11d4rrg09m95suab32vcj7kf3lpf1.apps.googleusercontent.com';
+  var SESSION_KEY = 'mergee_auth_expiry', USER_KEY = 'mergee_auth_user';
+  var SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
+  try {
+    var exp = parseInt(localStorage.getItem(SESSION_KEY) || '0', 10);
+    if (exp > Date.now() && localStorage.getItem(USER_KEY)) return;
+  } catch (e) {}
+  var gate = document.createElement('div');
+  gate.id = 'mergee-auth-gate';
+  gate.style.cssText = "position:fixed;inset:0;background:#f5ead8;display:flex;align-items:center;justify-content:center;z-index:2147483647;padding:20px;font-family:Figtree,'Sarabun',sans-serif";
+  gate.innerHTML =
+    '<div style="background:#fffaf2;border-radius:28px;padding:36px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(58,42,37,.12)">' +
+      '<div style="font-family:Caprasimo,serif;font-size:28px;color:#201e1d;margin-bottom:6px">Mergee</div>' +
+      '<div style="font-size:14px;color:rgba(32,30,29,.6);margin-bottom:24px">สำหรับพนักงานที่ได้รับอนุญาตเท่านั้น</div>' +
+      '<div id="mergee-g-signin" style="display:flex;justify-content:center"></div>' +
+      '<div id="mergee-auth-loading" style="display:none;color:rgba(32,30,29,.6);font-size:13px;margin-top:14px">กำลังตรวจสอบสิทธิ์...</div>' +
+      '<div id="mergee-auth-error" style="display:none;color:#b3261e;font-size:13px;margin-top:14px"></div>' +
+    '</div>';
+  (document.body || document.documentElement).appendChild(gate);
+  var $ = function(id){ return document.getElementById(id); };
+  function showError(msg){
+    $('mergee-auth-loading').style.display = 'none';
+    $('mergee-auth-error').textContent = msg || 'อีเมลนี้ไม่มีสิทธิ์เข้าถึงหน้านี้';
+    $('mergee-auth-error').style.display = 'block';
+    $('mergee-g-signin').style.display = 'flex';
+  }
+  function handleCredentialResponse(response){
+    $('mergee-auth-error').style.display = 'none';
+    $('mergee-g-signin').style.display = 'none';
+    $('mergee-auth-loading').style.display = 'block';
+    fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: response.credential }) })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data && data.authorized) {
+          try {
+            localStorage.setItem(SESSION_KEY, String(Date.now() + SESSION_DURATION_MS));
+            localStorage.setItem(USER_KEY, JSON.stringify({ email: data.email, name: data.name, role: data.role }));
+          } catch (e) {}
+          location.reload();
+        } else { showError(data && data.reason); }
+      })
+      .catch(function(){ showError('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'); });
+  }
+  function initGate(){
+    if (window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.initialize({ client_id: CLIENT_ID, callback: handleCredentialResponse });
+      google.accounts.id.renderButton($('mergee-g-signin'), { theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with' });
+    } else { setTimeout(initGate, 150); }
+  }
+  var g = document.createElement('script');
+  g.src = 'https://accounts.google.com/gsi/client'; g.async = true; g.defer = true;
+  document.head.appendChild(g);
+  initGate();
+};
+</script>
+
   <div id="__bundler_thumbnail">
   <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#f5ead8"></rect></svg>
 </div>
@@ -311,6 +370,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // preserve ordering (React before ReactDOM before Babel before text/babel).
     const doc = new DOMParser().parseFromString(template, 'text/html');
     document.documentElement.replaceWith(doc.documentElement);
+    if (window.__mergeeShowGate) window.__mergeeShowGate();
 
     // Resolve page-frame markers: mint this document's own blob for each
     // framed page — from local text when this is the root, otherwise by
